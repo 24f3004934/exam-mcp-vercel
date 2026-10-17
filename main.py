@@ -1,21 +1,17 @@
+
 import hashlib
 import re
 
+import uvicorn
 from mcp.server.fastmcp import FastMCP
 from mcp.server.lowlevel.server import request_ctx
 from mcp.server.transport_security import TransportSecuritySettings
 
 EMAIL = "24f3004934@ds.study.iitm.ac.in"
 
-mcp = FastMCP(
-    "Exam Challenge Server",
-    stateless_http=True,
-    json_response=True,
-    streamable_http_path="/mcp",
-)
-
-
+# Allow requests from Vercel and local development
 security = TransportSecuritySettings(
+    enable_dns_rebinding_protection=True,
     allowed_hosts=[
         "exam-mcp-vercel.vercel.app",
         "exam-mcp-vercel.vercel.app:*",
@@ -29,23 +25,48 @@ security = TransportSecuritySettings(
     ],
 )
 
-app = mcp.streamable_http_app(
-    transport_security=security
+# Create MCP server
+mcp = FastMCP(
+    "Exam Challenge Server",
+    stateless_http=True,
+    json_response=True,
+    streamable_http_path="/mcp",
+    host="0.0.0.0",
+    transport_security=security,
 )
 
 
+# Expose exactly one MCP tool
 @mcp.tool()
 def solve_challenge() -> str:
-    """Return the exam response derived from the HTTP challenge header."""
+    """Return the exam response from the HTTP challenge header."""
+
     request = request_ctx.get().request
-    challenge = request.headers.get("x-exam-challenge", "")
+
+    challenge = request.headers.get(
+        "x-exam-challenge", ""
+    )
+
     if not re.fullmatch(r"[0-9a-f]{32}", challenge):
-        raise ValueError("Invalid or missing X-Exam-Challenge")
-    return hashlib.sha256(f"{challenge}:{EMAIL}".encode()).hexdigest()[:16]
+        raise ValueError(
+            "Invalid or missing X-Exam-Challenge"
+        )
+
+    payload = f"{challenge}:{EMAIL}"
+
+    return hashlib.sha256(
+        payload.encode("utf-8")
+    ).hexdigest()[:16]
 
 
+# ASGI application for Vercel
 app = mcp.streamable_http_app()
 
+
+# Local development on port 9000
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=9000)
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=9000
+    )
