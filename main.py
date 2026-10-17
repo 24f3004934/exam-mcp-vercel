@@ -3,6 +3,7 @@ import re
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.lowlevel.server import request_ctx
+from mcp.server.transport_security import TransportSecuritySettings
 
 EMAIL = "24f3004934@ds.study.iitm.ac.in"
 
@@ -13,7 +14,24 @@ mcp = FastMCP(
     streamable_http_path="/mcp",
 )
 
-app = mcp.streamable_http_app()
+
+security = TransportSecuritySettings(
+    allowed_hosts=[
+        "exam-mcp-vercel.vercel.app",
+        "exam-mcp-vercel.vercel.app:*",
+        "localhost:*",
+        "127.0.0.1:*",
+    ],
+    allowed_origins=[
+        "https://exam-mcp-vercel.vercel.app",
+        "http://localhost:9000",
+        "http://127.0.0.1:9000",
+    ],
+)
+
+app = mcp.streamable_http_app(
+    transport_security=security
+)
 
 
 @mcp.tool()
