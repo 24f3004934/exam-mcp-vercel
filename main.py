@@ -13,6 +13,8 @@ mcp = FastMCP(
     streamable_http_path="/mcp",
 )
 
+app = mcp.streamable_http_app()
+
 
 @mcp.tool()
 def solve_challenge() -> str:
