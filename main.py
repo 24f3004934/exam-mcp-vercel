@@ -10,7 +10,7 @@ mcp = FastMCP(
     "Exam Challenge Server",
     stateless_http=True,
     json_response=True,
-    streamable_http_path="/mcp",
+    streamable_http_path="/",
 )
 
 
